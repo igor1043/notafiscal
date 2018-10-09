@@ -10,12 +10,14 @@ create table vendedores (id int primary key auto_increment, nome varchar (255), 
 
 create table produtos(id int primary key auto_increment,nome varchar(100),preco decimal(9,2))engine=InnoDB default charset=utf8;
 
-create table itens_da_nota_fiscal (id int primary key auto_increment,id_produto int references produtos(id))engine=InnoDB default charset=utf8;
+create table notas_fiscais (id int primary key auto_increment,id_empresa int,id_cliente int references clientes(id),id_vendedor int references vendedor(id),data date,pagamento varchar(255),foreign key(id_empresa) references empresas(id))engine=InnoDB default charset=utf8;
 
-create table notas_fiscais (id int primary key auto_increment,id_empresa int,id_cliente int references clientes(id),id_vendedor int references vendedor(id),data date,pagamento varchar(255),id_itensnotafiscal int ,foreign key(id_empresa) references empresas(id),foreign key(id_itensnotafiscal) references itens_da_nota_fiscal(id))engine=InnoDB default charset=utf8;
+create table itens_da_nota_fiscal (id int primary key auto_increment, id_produto int references produtos(id),id_notafiscal int,qtd int,valor decimal(9,2),foreign key (id_notafiscal) references notas_fiscais(id))engine=InnoDB default charset=utf8;
 
 
-insert into clientes (cpf,nome) values ('13902029684','Joao'),('20369584235','Maria'),('20145689752','Jose');
+
+
+insert into clientes (cpf,nome) values ('13902029684','Igor'),('20369584235','Maria'),('20145689752','Jose');
 
 insert into vendedores (nome,operador) values ('Lourdes','caixa 2');
 
@@ -23,12 +25,17 @@ insert into produtos (nome,preco) values('Resistor 1W 1K5',0.30),('Diodo 1N4148'
 
 insert into empresas (nome,cnpj,ie,telefone,estado,cidade) values ('Ideal Eletronica','05645828000110','059620945','77-34215615','Bahia','Vitoria da conquista');
 
-insert into itens_da_nota_fiscal (id_produto)  values (1),(2),(6);
+insert into notas_fiscais(id_cliente,id_empresa,id_vendedor,data,pagamento) values (1,1,1,'2018/09/10','a vista'),(2,1,1,'2018/09/11','cartao'),(1,1,1,'2018/09/12','a vista');
 
-insert into notas_fiscais(id_cliente,id_empresa,id_vendedor,data,pagamento,id_itensnotafiscal) values (1,1,1,'2018/09/10','a vista',1),(1,1,1,'2018/09/10','a vista',2),(2,1,1,'2018/09/11','a vista',3);
+insert into itens_da_nota_fiscal (id_produto,qtd,id_notafiscal,valor)  values (1,2,1,(select p.preco from produtos p where id=1)*qtd),(2,1,1,(select p.preco from produtos p where id=2)*qtd),(6,1,2,(select p.preco from produtos p where id=6)*qtd),(5,1,3,(select p.preco from produtos p where id=5)*qtd);
 
-/*inserindo os comandos*/
 
+
+igor comprou dois produtos,maria 1
+igor comprou :Um resistor e um diodo,maria comprou:soquete 8 pinos
+DQL
+
+comandos//
 /*Mostrar ID do cliente e o nome(Notas fiscais):*/
 select a.id_cliente,b.nome from notas_fiscais a inner join clientes b on a.id_cliente=b.id;
 
@@ -39,34 +46,52 @@ select clientes.nome as nome,notas_fiscais.data as data,notas_fiscais.pagamento 
 select clientes.nome as nome,notas_fiscais.data as data,notas_fiscais.pagamento as pagamento, notas_fiscais.id_vendedor as vendedores from clientes inner join notas_fiscais on clientes.id=notas_fiscais.id_cliente;
 
 /*Mostra os dados anteriores com o nome do vendedor:*/
-select clientes.nome as nome,notas_fiscais.data as data,notas_fiscais.pagamento as pagamento, vendedores.nome as vendedores from (clientes inner join notas_fiscais on clientes.id=notas_fiscais.id_cliente)inner join vendedores on vendedores.id=notas_fiscais.id_vendedor;
+select clientes.nome as nome,notas_fiscais.data as data,notas_fiscais.pagamento as pagamento, vendedores.nome as vendedores from 
+(clientes inner join notas_fiscais on clientes.id=notas_fiscais.id_cliente)
+inner join vendedores on vendedores.id=notas_fiscais.id_vendedor;
 
 /*Mostra os dados básicos com empresa e CPF(Notas fiscais):*/
-select empresas.nome as empresa, clientes.nome as nome,clientes.cpf as cpf,notas_fiscais.data as data,notas_fiscais.pagamento as pagamento, vendedores.nome as vendedores from ((clientes inner join notas_fiscais on clientes.id=notas_fiscais.id_cliente)inner join vendedores on vendedores.id=notas_fiscais.id_vendedor)inner join empresas on empresas.id=notas_fiscais.id_empresa;
+select empresas.nome as empresa, clientes.nome as nome,clientes.cpf as cpf,notas_fiscais.data as data,notas_fiscais.pagamento as pagamento, vendedores.nome as vendedores from 
+((clientes inner join notas_fiscais on clientes.id=notas_fiscais.id_cliente)
+inner join vendedores on vendedores.id=notas_fiscais.id_vendedor)
+inner join empresas on empresas.id=notas_fiscais.id_empresa;
 
 /*Mostra os dados completos sem os produtos(notas_fiscais):*/
-select empresas.nome as empresa, clientes.nome as nome,notas_fiscais.data as data,notas_fiscais.pagamento as pagamento, vendedores.nome as vendedores from ((clientes inner join notas_fiscais on clientes.id=notas_fiscais.id_cliente)inner join vendedores on vendedores.id=notas_fiscais.id_vendedor)inner join empresas on empresas.id=notas_fiscais.id_empresa;
+select empresas.nome as empresa, clientes.nome as nome,notas_fiscais.data as data,notas_fiscais.pagamento as pagamento, vendedores.nome as vendedores from ((clientes inner join notas_fiscais on clientes.id=notas_fiscais.id_cliente)
+inner join vendedores on vendedores.id=notas_fiscais.id_vendedor)
+inner join empresas on empresas.id=notas_fiscais.id_empresa;
 
-/*Mostra o nome do produto e preço (itens_da_nota_fiscal):*/
+/*Mostro o nome do produto e preço vendidos na loja(itens_da_nota_fiscal):*/
 select produtos.nome as nome_produto,produtos.preco as preco from itens_da_nota_fiscal inner join produtos on produtos.id=itens_da_nota_fiscal.id_produto;
 
-/*Os dados basicos da nota com o id dos itens da mesma(nota_fiscal)*/
-select empresas.nome as empresa, clientes.nome as nome,notas_fiscais.data as data,notas_fiscais.pagamento as pagamento, vendedores.nome as vendedores,notas_fiscais.id_itensnotafiscal as iditennota from (((clientes inner join notas_fiscais on clientes.id=notas_fiscais.id_cliente)inner join vendedores on vendedores.id=notas_fiscais.id_vendedor)inner join empresas on empresas.id=notas_fiscais.id_empresa);
+/*Os dados basicos da nota */
+select empresas.nome as empresa, clientes.nome as nome,notas_fiscais.data as data,notas_fiscais.pagamento as pagamento, vendedores.nome as vendedoresa from (((clientes inner join notas_fiscais on clientes.id=notas_fiscais.id_cliente)
+inner join vendedores on vendedores.id=notas_fiscais.id_vendedor)
+inner join empresas on empresas.id=notas_fiscais.id_empresa);
 
 /*[Oficial] Itens da nota fiscal completa,sem soma e localização (itens_da_nota_fiscal)*/
-select empresas.nome as empresa,empresas.cnpj as cnpj, clientes.nome as cliente,clientes.cpf as cpf,notas_fiscais.data as data,notas_fiscais.pagamento as pagamento, vendedores.nome as vendedores,produtos.nome as produto,produtos.preco from ((((clientes inner join notas_fiscais on clientes.id=notas_fiscais.id_cliente)inner join vendedores on vendedores.id=notas_fiscais.id_vendedor)inner join empresas on empresas.id=notas_fiscais.id_empresa)inner join itens_da_nota_fiscal on notas_fiscais.id_itensnotafiscal=itens_da_nota_fiscal.id)inner join produtos on produtos.id=itens_da_nota_fiscal.id_produto;
-
-/*Mostrando todos os dados: Empresas,vendedores,produtos,cnpj,preço,telefone,estado,cidade,cliente,cpf,data,pagamentos.*/
-select empresas.nome as empresa,empresas.cnpj as cnpj,empresas.telefone as telefone,empresas.estado as estado,empresas.cidade as cidade, clientes.nome as cliente,clientes.cpf as cpf,notas_fiscais.data as data,notas_fiscais.pagamento as pagamento, vendedores.nome as vendedores,produtos.nome as produto,produtos.preco from ((((clientes inner join notas_fiscais on clientes.id=notas_fiscais.id_cliente)inner join vendedores on vendedores.id=notas_fiscais.id_vendedor)inner join empresas on empresas.id=notas_fiscais.id_empresa)inner join itens_da_nota_fiscal on notas_fiscais.id_itensnotafiscal=itens_da_nota_fiscal.id)inner join produtos on produtos.id=itens_da_nota_fiscal.id_produto;
+select clientes.nome as cliente,notas_fiscais.data as data,notas_fiscais.pagamento as pagamento,notas_fiscais.id as id_da_nota,itens_da_nota_fiscal.qtd as qtd,produtos.nome as produtos,itens_da_nota_fiscal.valor,produtos.preco as preco_de_tabela from 
+(((clientes inner join notas_fiscais on clientes.id=notas_fiscais.id_cliente)inner join empresas on empresas.id=notas_fiscais.id_empresa)inner join itens_da_nota_fiscal on itens_da_nota_fiscal.id_notafiscal=notas_fiscais.id) inner join produtos on produtos.id=itens_da_nota_fiscal.id_produto;
 
 /*Soma os produtos comprados pelo cliente durante todo o periodo*/
-select  clientes.nome as nome,SUM(produtos.preco) as valor from ((((clientes inner join notas_fiscais on clientes.id=notas_fiscais.id_cliente)inner join vendedores on vendedores.id=notas_fiscais.id_vendedor)inner join empresas on empresas.id=notas_fiscais.id_empresa)inner join itens_da_nota_fiscal on notas_fiscais.id_itensnotafiscal=itens_da_nota_fiscal.id)inner join produtos on produtos.id=itens_da_nota_fiscal.id_produto where clientes.id=1 GROUP BY produtos.preco;
+
+select clientes.nome as cliente,notas_fiscais.data as data,SUM(itens_da_nota_fiscal.qtd) as qtd_produtos,SUM(itens_da_nota_fiscal.valor) as valortotal from 
+((clientes inner join notas_fiscais on clientes.id=notas_fiscais.id_cliente)
+inner join itens_da_nota_fiscal on itens_da_nota_fiscal.id_notafiscal=notas_fiscais.id) inner join produtos on produtos.id=itens_da_nota_fiscal.id_produto
+where clientes.id=1 GROUP BY produtos.preco;
+
 
 /*Soma os produtos comprados pelo cliente pelo nome*/
-select  clientes.nome as nome,SUM(produtos.preco) as valor from ((((clientes inner join notas_fiscais on clientes.id=notas_fiscais.id_cliente)inner join vendedores on vendedores.id=notas_fiscais.id_vendedor)inner join empresas on empresas.id=notas_fiscais.id_empresa)inner join itens_da_nota_fiscal on notas_fiscais.id_itensnotafiscal=itens_da_nota_fiscal.id)inner join produtos on produtos.id=itens_da_nota_fiscal.id_produto where clientes.nome='Maria' GROUP BY produtos.preco;
 
-/*Soma os produtos comprados pelo cliente por periodo*/
-select  clientes.nome as nome,SUM(produtos.preco) as valor from ((((clientes inner join notas_fiscais on clientes.id=notas_fiscais.id_cliente)inner join vendedores on vendedores.id=notas_fiscais.id_vendedor)inner join empresas on empresas.id=notas_fiscais.id_empresa)inner join itens_da_nota_fiscal on notas_fiscais.id_itensnotafiscal=itens_da_nota_fiscal.id)inner join produtos on produtos.id=itens_da_nota_fiscal.id_produto where notas_fiscais.data='2018-09-11' GROUP BY produtos.preco;
+select clientes.nome as cliente,notas_fiscais.data as data,SUM(itens_da_nota_fiscal.qtd) as qtd_produtos,SUM(itens_da_nota_fiscal.valor) as valortotal from 
+((clientes inner join notas_fiscais on clientes.id=notas_fiscais.id_cliente)
+inner join itens_da_nota_fiscal on itens_da_nota_fiscal.id_notafiscal=notas_fiscais.id) inner join produtos on produtos.id=itens_da_nota_fiscal.id_produto
+where clientes.nome='Igor' GROUP BY produtos.preco;
 
-/*Soma os produtos comprados pelo cliente por */
-select  clientes.nome as nome,produtos.nome as produto,SUM(produtos.preco) as valor from ((((clientes inner join notas_fiscais on clientes.id=notas_fiscais.id_cliente)inner join vendedores on vendedores.id=notas_fiscais.id_vendedor)inner join empresas on empresas.id=notas_fiscais.id_empresa)inner join itens_da_nota_fiscal on notas_fiscais.id_itensnotafiscal=itens_da_nota_fiscal.id)inner join produtos on produtos.id=itens_da_nota_fiscal.id_produto where notas_fiscais.data='2018-09-10' GROUP BY produtos.preco;
+
+/*Soma os produtos comprados pelo cliente por periodo especifico*/
+
+select clientes.nome as cliente,notas_fiscais.data as data,SUM(itens_da_nota_fiscal.qtd) as qtd_produtos,SUM(itens_da_nota_fiscal.valor) as valortotal from 
+((clientes inner join notas_fiscais on clientes.id=notas_fiscais.id_cliente)
+inner join itens_da_nota_fiscal on itens_da_nota_fiscal.id_notafiscal=notas_fiscais.id) inner join produtos on produtos.id=itens_da_nota_fiscal.id_produto
+where notas_fiscais.data='2018-09-10' GROUP BY produtos.preco;
